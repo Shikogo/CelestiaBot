@@ -1,0 +1,7 @@
+["safe",
+ "-spoiler:comic", "-spoiler:s07*",
+ "-spoiler:my little pony movie",
+ "-comic",
+ "-spoiler:eqg specials",
+ "created_at.gte:2013",
+ "score.gte:20"]
