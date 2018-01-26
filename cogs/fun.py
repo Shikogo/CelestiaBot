@@ -19,20 +19,17 @@ class Player:
 
 class Fun:
     """Contains fun commands!!"""
-
     def __init__(self, bot):
         self.bot = bot
-        self.luna = discord.User(id = "175829806041006082").mention
-        self.me = self.bot.user.mention
         self.praises = {
             re.compile("((the )?sun)|", re.IGNORECASE) : (
                 "Praise the sun! [](/grinlestia)",
             ),
-            re.compile("(princess )?((celes)?tia|sun ?(butt|horse|pon[ye])|cell?y|(the )princess of (the )suns?|you(rself)?|{0})".format(self.me), re.IGNORECASE) : (
+            re.compile("(princess )?((celes)?tia|sun ?(butt|horse|pon[ye])|cell?y|(the )princess of (the )suns?|you(rself)?|<@!?{0}>)".format(self.bot.user.id), re.IGNORECASE) : (
                 "Why thank you! [](/celestiaglee)",
                 "Aww, I like you too, {author.mention}! [](/celestlove)"
             ),
-            re.compile("((princess )?((lu|woo)na|moonbutt)|your sister|{})".format(self.luna), re.IGNORECASE) : (
+            re.compile("((princess )?((lu|woo)na|moonbutt)|your sister|<@!?175829806041006082>)", re.IGNORECASE) : (
                 "[](/awelestia) Hey Princess Luna, you're up!",
                 "But.. I want praise, too. [](/tiajealous)",
                 "*hugs Luna [](/lunacelehug)*",
@@ -53,58 +50,57 @@ class Fun:
                 "Hell yeah Sun Queen!"
             ),
             re.compile("((the )?apples|apple(jack| ?bloom)|(prince(ss)? )?big mac(intosh)?|(the )?apple family|e+yup|e+n+ope)", re.IGNORECASE) : (
-                "[](/princessmac-r) Eeyup!"
+                "[](/princessmac-r) Eeyup!",
             ),
             re.compile("(pok[eé]mon( go)?|mew)", re.IGNORECASE) : (
-                "[](/mewlestia) Gotta catch 'em all!"
+                "[](/mewlestia) Gotta catch 'em all!",
             ),
             re.compile("((copper ?|kitty)core( is cute(\+\+)?)?|chadwick|<@(!)?148092962214117376>)", re.IGNORECASE) : (
-                "coppercore is cute++"
+                "coppercore is cute++",
             )
 
         }
 
-    @commands.command(pass_context = True, aliases = ["praises"])
+    @commands.command(aliases = ["praises"])
     async def praise(self, ctx, *, obj=""):
         """Praises things. Usually the sun."""
 
         if len(obj) > 50:
-            await self.bot.say("[](/properbudget) That's a bit long, don't you think?")
+            await ctx.send("[](/properbudget) That's a bit long, don't you think?")
             return
 
         for key in self.praises:
             match = re.fullmatch(key, obj)
             if match:
                 response = random.choice(self.praises[key])
-                await self.bot.say(response.format(author=ctx.message.author))
+                await ctx.send(response.format(author=ctx.author))
                 return
 
-        if re.fullmatch("({0.mention}|{0.display_name}|{0.name}|me|myself)".format(ctx.message.author),
+        if re.fullmatch("({0.mention}|{0.display_name}|{0.name}|me|myself)".format(ctx.author),
                           obj, re.IGNORECASE):
             response = random.choice([
                 "[](/celestiamad) You're praising yourself? Really?",
                 "[](/lcewat) Praise {0.mention}, the most humble person in the universe.",
                 "Praise you! [](/clop12)"
             ])
-            await self.bot.say(response.format(ctx.message.author))
+            await ctx.send(response.format(ctx.author))
 
         elif re.fullmatch("((queen )?(chrysalis|chryss(i(e)?|y))|changelings?|bug horses?|thorax|spectre)",
                           obj, re.IGNORECASE):
-            await self.bot.change_nickname(ctx.message.server.me, "Queen Chrysalis")
-            await self.bot.say("[](/queenlove)")
+            await ctx.guild.me.edit(nick="Queen Chrysalis")
+            await ctx.send("[](/queenlove)")
             await asyncio.sleep(60)
-            await self.bot.change_nickname(ctx.message.server.me, None)
-
+            await ctx.guild.me.edit(nick=None)
 
         elif re.fullmatch("recursion", obj, re.IGNORECASE):
             for i in range(5):
-                await self.bot.say("&praise recursion")
+                await ctx.send("&praise recursion")
                 await asyncio.sleep(1)
-            await self.bot.say("Oops. Sorry about that. [](/lcesurprised)")
+            await ctx.send("Oops. Sorry about that. [](/lcesurprised)")
 
         elif re.fullmatch("fl(a|e|i|o|u|ä|ü|ö|0){2,}f", obj, re.IGNORECASE):
             os = "o" * random.randint(2, 20)
-            await self.bot.say("[](/celsit) fl{0}f!".format(os))
+            await ctx.send("[](/celsit) fl{0}f!".format(os))
 
         else:
             response = random.choice([
@@ -135,13 +131,12 @@ class Fun:
                 "{obj_cap}? Princess Luna is an *expert* about that.",
                 "[](/crazylestia) {obj_cap} for the {obj} god!",
                 "[](/celdevious) It's true, for only 99c a minute I will praise {obj} just for you...",
-                "{obj_cap}? I don't even know what that is... [](/tiapoker)",
-                "**{obj_allcaps}**"
+                "{obj_cap}? I don't even know what that is... [](/tiapoker)"
             ])
-            await self.bot.say(response.format(obj=obj, obj_cap=obj.capitalize(), obj_allcaps=" ".join(obj).upper()))
+            await ctx.send(response.format(obj=obj, obj_cap=obj.capitalize()))
 
 
-    @commands.command(pass_context=True, aliases=["colour", "couleur", "farbe", "色"])
+    @commands.command(aliases=["colour", "couleur", "farbe", "色"])
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def color(self, ctx, *, msg):
         """Produces colorful text!"""
@@ -169,14 +164,14 @@ class Fun:
 
             draw.text((5, 0), msg, (random.randint(10,255),random.randint(10,255),random.randint(10,255)), font)
             img.save("output.png", "png")
-            await self.bot.send_file(ctx.message.channel, "output.png")
+            await ctx.send(file=discord.File("output.png"))
 
         else:
-            await self.bot.say("Your text is too long.")
+            await ctx.send("Your text is too long.")
 
 
     @commands.command(aliases=["magiceight", "magic8ball", "m8"])
-    async def magic8(self):
+    async def magic8(self, ctx):
         """
         It's a magic 8 ball!
 
@@ -209,7 +204,7 @@ class Fun:
             "Outlook not so good",
             "Very doubtful"
         ])
-        await self.bot.say('*{}*'.format(answer))
+        await ctx.send('*{}*'.format(answer))
 
 
     @commands.command(pass_context=True)
@@ -230,25 +225,26 @@ class Fun:
         #     return
 
         if not opponent:
-            await self.bot.say("You can't play DGMP alone.")
+            await ctx.send("You can't play DGMP alone.")
             return
 
-        channel = ctx.message.channel
-        challenger = ctx.message.author
+        channel = ctx.channel
+        challenger = ctx.author
 
         def check(msg):
-            return re.fullmatch("(y(es)?|n(o)?)|stop!", msg.content, re.IGNORECASE)
+            return re.fullmatch("(y(es)?|n(o)?)", msg.content, re.IGNORECASE) and msg.author == opponent and msg.channel == channel
 
-        await self.bot.say("{0.mention}! You were challenged to a dice game by {1.mention}! Do you accept?".format(opponent, challenger))
-        msg = await self.bot.wait_for_message(timeout=60, check=check, channel=channel, author=opponent)
-        if not msg:
-            await self.bot.say("Timed out. Aborting match.")
+        await ctx.send("{0.mention}! You were challenged to a dice game by {1.mention}! Do you accept?".format(opponent, challenger))
+        try:
+            msg = await self.bot.wait_for("message", check=check, timeout=60)
+        except asyncio.TimeoutError:
+            await ctx.send("Timed out. Aborting match.")
             return
-        elif re.fullmatch("n(o)?", msg.content, re.IGNORECASE):
-            await self.bot.say("[](/sadtia) https://www.youtube.com/watch?v=-EQ6eHeBrhM")
+        if re.fullmatch("n(o)?", msg.content, re.IGNORECASE):
+            await ctx.send("[](/sadtia) https://www.youtube.com/watch?v=-EQ6eHeBrhM")
             return
         else:
-            await self.bot.say("{0.display_name} has accepted! A random player will start the match!\n\n".format(opponent))
+            await ctx.send("{0.display_name} has accepted! A random player will start the match!\n\n".format(opponent))
             await asyncio.sleep(2)
 
         player1 = Player(challenger)
@@ -264,14 +260,17 @@ class Fun:
 
         async def turn(player):
             """ This is run for each turn. """
-            await self.bot.say("{0.user.display_name}'s turn!".format(player))
+            await ctx.send("{0.user.display_name}'s turn!".format(player))
             playing = True
             temp_score = 0
             temp_total = player.score
+            def check(msg):
+                return re.fullmatch("(y(es)?|no?|stop!)", msg.content, re.IGNORECASE) and msg.author == player.user and msg.channel == channel
+
             while playing:
                 roll = random.randint(1,6)
                 if roll == 1:
-                    await self.bot.say("You rolled a **1**... You lose **{temp}** points. "
+                    await ctx.send("You rolled a **1**... You lose **{temp}** points. "
                                        "You return to your **{total}** point total.\n"
                                        "Your turn is over!".format(temp=temp_score, total=player.score))
                                        # game continues
@@ -281,18 +280,24 @@ class Fun:
                     temp_total += roll
                     if temp_total >= 50:
                         # active player wins!
+                        await ctx.send("You rolled a **{}**!".format(roll))
+                        player.score = temp_total
                         return 1
                     else:
-                        await self.bot.say("You rolled a **{roll}**! You have accumulated **{temp}** points this turn. "
+                        await ctx.send("You rolled a **{roll}**! You have accumulated **{temp}** points this turn. "
                                            "Your current total is **{temp_total}**.\n\n"
                                            "Roll again?".format(roll=roll, temp=temp_score, temp_total=temp_total))
-                        msg = await self.bot.wait_for_message(timeout=60, author=player.user, check=check)
-                        if (not msg) or re.fullmatch("stop!", msg.content, re.IGNORECASE):
-                            # game ends
+                        try:
+                            msg = await self.bot.wait_for("message", check=check, timeout=60)
+                        except asyncio.TimeoutError:
+                            await ctx.send("Timeout. Ending the match.")
                             return -1
-                        elif re.fullmatch("n(o)?", msg.content, re.IGNORECASE):
-                            player.score = temp_score
-                            await self.bot.say("{player.user.display_name} passes the turn with **{temp_total}** points.".format(player=player, temp_total=temp_total))
+                        if re.fullmatch("stop!", msg.content, re.IGNORECASE):
+                            ctx.send("Ending the match.")
+                            return -1
+                        elif re.fullmatch("no?", msg.content, re.IGNORECASE):
+                            player.score = temp_total
+                            await ctx.send("{player.user.display_name} passes the turn with **{temp_total}** points.".format(player=player, temp_total=temp_total))
                             # game continues
                             return 0
 
@@ -301,10 +306,10 @@ class Fun:
             turn_result = await turn(active_player)
 
             if turn_result == -1:
-                await self.bot.say("Ending the match.")
+                # match ended, message sent in the turn fuction.
                 return
             elif turn_result == 1:
-                await self.bot.say("{0.user.display_name} wins the match with **{0.score}** points!! Congratulations!".format(active_player))
+                await ctx.send("{0.user.display_name} wins the match with **{0.score}** points!! Congratulations!".format(active_player))
                 return
             else:
                 active_player, inactive_player = inactive_player, active_player

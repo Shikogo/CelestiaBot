@@ -1,4 +1,3 @@
-
 import asyncio
 import aiohttp
 import configparser
@@ -21,7 +20,7 @@ class Utility:
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(pass_context=True)
+    @commands.command()
     async def botspam(self, ctx, *members: discord.Member):
         """
         For when bot usage gets spammy.
@@ -29,12 +28,13 @@ class Utility:
         Each of the users listed gets automatically pinged in the bot room.
         """
 
-        server_id = ctx.message.server.id
+        server_id = ctx.message.guild.id
 
         servers = {
         #   Server ID           : bot channel ID
-            "146965094998212608": "174963303527874561", # mlpds
-            "178176831508316160": "209122538368794624"  # the blastradius
+            146965094998212608: 174963303527874561, # mlpds
+            178176831508316160: 209122538368794624, # the blastradius
+            199388418801795073: 202242214686883840  # test realm
         }
 
         if server_id in servers.keys():
@@ -44,60 +44,57 @@ class Utility:
             bot_channel = None
             bot_channel_name = "the bot channel"
 
-        await self.bot.say("Spam spam spam! Please continue in {}.".format(bot_channel_name))
+        await ctx.send("Spam spam spam! Please continue in {}.".format(bot_channel_name))
 
         if bot_channel:
             if members:
-                await self.bot.send_message(bot_channel,
-                    "You can play with us here, {}! [](/lcefilly)".format(
-                    ", ".join([x.mention for x in members])
-                    ))
+                await bot_channel.send("You can play with us here, {}! [](/lcefilly)".format(", ".join([x.mention for x in members])))
             else:
-                await self.bot.send_message(bot_channel, "You can play with us here! [](/lcefilly)")
+                await bot_channel.send("You can play with us here! [](/lcefilly)")
 
     @commands.command()
-    @checks.is_me()
-    async def logout(self):
+    @commands.is_owner()
+    async def logout(self, ctx):
         """Turns off/restarts the bot."""
-        await self.bot.say("Shutting down.")
+        await ctx.send("Shutting down.")
         await self.bot.logout()
 
 
     @commands.command()
-    @checks.is_me()
-    async def set_game(self, game=None):
+    @commands.is_owner()
+    async def set_game(self, ctx, *, game=None):
         """Sets the game the bot is 'playing'."""
-        await self.bot.change_presence(game = discord.Game(name = game))
-        await self.bot.say("Game set to {}.".format(game))
+        await self.bot.change_presence(game=discord.Game(name=game))
+        await ctx.send("Game set to {}.".format(game))
 
-    @commands.command(pass_context=True)
-    @checks.is_me()
-    async def set_nick(self, ctx, name=None):
+    @commands.command()
+    @commands.is_owner()
+    async def set_nick(self, ctx, *, nick=None):
         """Allows the owner to change the display name of the bot."""
-        await self.bot.change_nickname(ctx.message.server.me, name)
-        if name:
-            await self.bot.say("Changed display name to {}.".format(name))
+        await ctx.me.edit(nick=nick)
+        if nick:
+            await ctx.send("Changed display name to {}.".format(nick))
         else:
-            await self.bot.say("Name reset.")
+            await ctx.send("Name reset.")
 
     @commands.command(hidden=True)
-    @checks.is_me()
-    async def echo(self, *, msg):
+    @commands.is_owner()
+    async def echo(self, ctx, *, msg):
         """
         Returns the message entered.
         Can only be used by the bot owner.
         """
-        await self.bot.say(msg)
+        await ctx.send(msg)
 
     @commands.command(hidden=True)
-    @checks.is_me()
-    async def secho(self, channel, *, msg):
+    @commands.is_owner()
+    async def secho(self, ctx, target_channel: discord.TextChannel, *, msg):
         """ Sends a message into a chosen channel. """
-        await self.bot.send_message(discord.Object(channel), msg)
-        await self.bot.say("Message sent.")
+        await target_channel.send(msg)
+        await ctx.send("Message sent.")
 
-    @commands.group(pass_context=True, hidden=True)
-    @checks.is_me()
+    @commands.group(hidden=True)
+    @checks.is_mod()
     async def blacklist(self, ctx):
         """ Blacklisting tools. """
         if ctx.invoked_subcommand is None:
@@ -110,13 +107,13 @@ class Utility:
                 else:
                     unidentified.append(user_id)
             if names:
-                await self.bot.say("These are the users currently blacklisted: {}".format(', '.join(names)))
+                await ctx.send("These are the users currently blacklisted: {}".format(', '.join(names)))
             else:
-                await self.bot.say("Currently there are no blacklisted users.")
+                await ctx.send("Currently there are no blacklisted users.")
             if unidentified:
-                await self.bot.say("I also found these IDs, but don't know who they are: {}".format(', '.join(unidentified)))
+                await ctx.send("I also found these IDs, but don't know who they are: {}".format(', '.join(unidentified)))
 
-    @blacklist.command(pass_context=True)
+    @blacklist.command()
     async def server(self, ctx):
         names = []
         for user_id in checks.blacklist:
@@ -124,32 +121,32 @@ class Utility:
             if user:
                 names.append(user.name)
         if names:
-            await self.bot.say("These are the users currently blacklisted on this server: {}".format(', '.join(names)))
+            await ctx.send("These are the users currently blacklisted on this server: {}".format(', '.join(names)))
         else:
-            await self.bot.say("Currently there are no blacklisted users on this server.")
+            await ctx.send("Currently there are no blacklisted users on this server.")
 
     @blacklist.command()
-    async def add(self, user: discord.Member):
+    async def add(self, ctx, user: discord.Member):
         if user.id not in checks.blacklist:
             checks.blacklist.add(user.id)
             with open('blacklist.json', 'w') as f:
                 json.dump(list(checks.blacklist), f)
-            await self.bot.say("{} added to the blacklist.".format(user.name))
+            await ctx.send("{} added to the blacklist.".format(user.name))
         else:
-            await self.bot.say("That user is already blacklisted.")
+            await ctx.send("That user is already blacklisted.")
 
     @blacklist.command()
-    async def remove(self, user: discord.Member):
+    async def remove(self, ctx, user: discord.Member):
         if user.id in checks.blacklist:
             checks.blacklist.remove(user.id)
             with open('blacklist.json', 'w') as f:
                 json.dump(list(checks.blacklist), f)
-            await self.bot.say("Removed {} from the blacklist.".format(user.name))
+            await ctx.send("Removed {} from the blacklist.".format(user.name))
         else:
-            await self.bot.say("That user isn't even blacklisted!")
+            await ctx.send("That user isn't even blacklisted!")
 
     @commands.command(aliases=['mlpw'])
-    async def mlpwiki(self, *, search):
+    async def mlpwiki(self, ctx, *, search):
         """Searches the MLP wiki and returns the first link."""
         search_processed = search.replace(" ", "+")
         async with aiohttp.ClientSession() as session:
@@ -158,18 +155,18 @@ class Utility:
                     search_result = await resp.json()
                     article_url = search_result['items'][0]['url']
                 except KeyError:
-                    await self.bot.say("No search result found.")
+                    await ctx.send("No search result found.")
                     return
 
-        await self.bot.say("{}".format(article_url))
+        await ctx.send("{}".format(article_url))
 
 
-    @commands.group(pass_context=True, hidden=True)
+    @commands.group(hidden=True)
     async def derpi(self, ctx):
         """ Derpibooru shenanigans. """
-        if ctx.invoked_subcommand is None:
-            result = next(d.Search().limit(1).sort_by(d.sort.RANDOM).query("safe"))
-            await self.bot.say("Here's a random safe Derpibooru image: {}".format(result.url))
+        result = next(d.Search().limit(1).sort_by(d.sort.RANDOM).query("safe"))
+        await ctx.send("Here's a random safe Derpibooru image: {}".format(result.url))
+
 
 def setup(bot):
     bot.add_cog(Utility(bot))
