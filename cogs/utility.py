@@ -20,6 +20,11 @@ class Utility:
 
     def __init__(self, bot):
         self.bot = bot
+        try:
+            with open("./database/servers.json") as f:
+                self.servers = json.load(f)
+        except FileNotFoundError:
+            self.servers = {}
 
     @commands.command()
     async def botspam(self, ctx, *members: discord.Member):
@@ -29,17 +34,12 @@ class Utility:
         Each of the users listed gets automatically pinged in the bot room.
         """
 
-        server_id = ctx.message.guild.id
+        servers= {}
 
-        servers = {
-        #   Server ID           : bot channel ID
-            146965094998212608: 174963303527874561, # mlpds
-            178176831508316160: 209122538368794624, # the blastradius
-            199388418801795073: 202242214686883840  # test realm
-        }
+        server_id = str(ctx.message.guild.id)
 
-        if server_id in servers.keys():
-            bot_channel = self.bot.get_channel(servers[server_id])
+        if server_id in self.servers.keys():
+            bot_channel = self.bot.get_channel(self.servers[server_id])
             bot_channel_name = bot_channel.mention
         else:
             bot_channel = None
