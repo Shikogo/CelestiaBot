@@ -1,3 +1,4 @@
+
 import asyncio
 import aiohttp
 import configparser
@@ -169,13 +170,6 @@ class Utility:
         if ctx.invoked_subcommand is None:
             result = next(d.Search().limit(1).sort_by(d.sort.RANDOM).query("safe"))
             await self.bot.say("Here's a random safe Derpibooru image: {}".format(result.url))
-
-    @derpi.command()
-    @checks.is_me()
-    async def all(self):
-        result = next(d.Search().limit(1).sort_by(d.sort.RANDOM).key("***REMOVED***"))
-        await self.bot.say("Here's a random Derpibooru image: {}".format(result.url))
-
 
 def setup(bot):
     bot.add_cog(Utility(bot))
