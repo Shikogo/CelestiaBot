@@ -13,6 +13,7 @@ import checks
 config = configparser.ConfigParser()
 config.read("config.ini")
 
+source = config['Bot']['source_url']
 
 class Utility:
     """Contains utility commands."""
@@ -166,6 +167,13 @@ class Utility:
         """ Derpibooru shenanigans. """
         result = next(d.Search().limit(1).sort_by(d.sort.RANDOM).query("safe"))
         await ctx.send("Here's a random safe Derpibooru image: {}".format(result.url))
+
+
+    @commands.command()
+    async def source(self, ctx):
+        """ Links to the source code. """
+        owner = (await ctx.bot.application_info()).owner.mention
+        await ctx.send("I was made by {}!\n\nYou can find my source code here:\n{}".format(owner, source))
 
 
 def setup(bot):
