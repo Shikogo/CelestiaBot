@@ -16,7 +16,6 @@ except FileNotFoundError:
 config = configparser.ConfigParser()
 config.read("config.ini")
 
-owner = int(config["Authentication"]["owner"])
 mod_roles = [x.strip() for x in config['Authentication']['mod_roles'].split(",")]
 testserver_id = int(config['Servers']['testserver_id'])
 
