@@ -10,6 +10,7 @@ import discord
 from discord.ext import commands
 
 import checks
+import patterns
 
 # Loading up the config file.
 config = configparser.ConfigParser()
@@ -23,14 +24,13 @@ logging.basicConfig(
     style = "{")
 
 
-
 prefix = [x.strip() for x in config['Bot']['prefix'].split(",")]
 description = config['Bot']['description']
 game = config['Bot']['game']
+startup_extensions = [x.strip() for x in config['Bot']['cogs'].split(",")]
 
 bot = commands.Bot(command_prefix=prefix, description=description)
 
-startup_extensions = [x.strip() for x in config['Bot']['cogs'].split(",")]
 
 @bot.event
 async def on_ready():
@@ -40,15 +40,13 @@ async def on_ready():
     print(bot.user.id)
     print("------")
 
+
     bot.add_check(checks.is_not_blacklisted)
     await bot.change_presence(game=discord.Game(name=game))
 
-    server_list = [server.name for server in bot.servers if server.name]
+    global pat
+    pat = patterns.Patterns(bot.user.id)
 
-    if server_list:
-        print("Connected to: {}".format(", ".join(server_list)))
-    else:
-        print("No servers connected.")
 
     for extension in startup_extensions:
         try:
@@ -56,45 +54,28 @@ async def on_ready():
             print("Successfully loaded {}.".format(extension))
         except Exception as e:
             exc = "{}: {}".format(type(e).__name__, e)
-            print("Failed to load extension{}\n{}.".format(extension, exc))
+            print("Failed to load extension {}\n{}.".format(extension, exc))
 
 
 @bot.event
-async def on_command_error(error, ctx):
+async def on_command_error(ctx, error):
     """Runs if a bot command raises an error."""
     if isinstance(error, commands.errors.CheckFailure):
-        await bot.send_message(ctx.message.channel,
-            "Sorry, you are not allowed to use this command.")
+        await ctx.send("Sorry, you are not allowed to use this command.")
     elif isinstance(error, commands.errors.CommandNotFound):
-        await bot.send_message(ctx.message.channel,
-            "`{0}{1}` is not a valid command. Try `{0}help`.".format(ctx.prefix, ctx.invoked_with))
+        await ctx.send("`{0}{1}` is not a valid command. Try `{0}help`.".format(ctx.prefix, ctx.invoked_with))
     elif isinstance(error, commands.errors.CommandOnCooldown):
-        await bot.send_message(ctx.message.channel,
-            "This command is on cooldown. You may use it again in {0}s.".format(round(error.retry_after, 1)))
+        await ctx.send("This command is on cooldown. You may use it again in {0}s.".format(round(error.retry_after, 1)))
     else:
-        await bot.send_message(ctx.message.channel,
-            "```py\n{}: {}\n```".format(type(error).__name__, str(error)))
+        await ctx.send("```py\n{}: {}\n```".format(type(error).__name__, str(error)))
         raise error
-
-
-
-
-# Regex for AI
-re_celestia = "(princess )?((celes)?tia|sun ?(butt|horse|pon[ye])|cell?y|(the )princess of (the )suns?|<@!?197809480686239744>)"
-re_hug = re.compile("[_\*](hug(gle)?s|glomps|snug(gle)?s( with)?|squeezes) ({}|every(one|pony))".format(re_celestia), re.IGNORECASE)
-re_greet = re.compile("(hi|hello|hey|(good )?afternoon) (every(one|pony)|(y'?)?all|friends|folks|guys|{})!*".format(re_celestia), re.IGNORECASE)
-re_morning = re.compile("(good |')?mornin(g|')? (every(one|pony)|(y'?)?all|friends|folks|guys|{})!*".format(re_celestia), re.IGNORECASE)
-re_bap = re.compile("(_(baps|smacks|hits|slaps)|bad) {}".format(re_celestia), re.IGNORECASE)
-re_konami = re.compile(r"((up|🔼|⬆|\^)\s?){2}((down|🔽|⬇|v)\s?){2}((left\s?right|⬅\s?➡|◀\s?▶|<\s?>)\s?){2}(B|🅱)\s?(A|🅰)", re.IGNORECASE)
-re_derpi = re.compile(r"derpicdn\.net/img/(view/)?\d+/\d+/\d+/\d+")
-# re_give = re.compile("[_\*]gives {} (a|the)?", re.IGNORECASE)
 
 
 @bot.event
 async def on_message(message):
     """Various AI responses to things that users say."""
     if message.author.id not in checks.blacklist and not message.author.bot:
-        if re_hug.match(message.content):
+        if pat.hug.match(message.content):
             response = random.choice([
                 "_hugs {}_",
                 "_embraces {}_",
@@ -102,34 +83,34 @@ async def on_message(message):
                 "_squeezes {}_"
             ])
             await ai_response(message.channel, response.format(message.author.mention))
-        elif re_greet.fullmatch(message.content):
+        elif pat.greet.fullmatch(message.content):
             response = random.choice([
                 "[](/grinlestia) Hi, {}!",
                 "[](/celestia) Hello, {}.",
                 "[](/lcehappy) Hey there, {}."
             ])
             await ai_response(message.channel, response.format(message.author.mention))
-        elif re_morning.fullmatch(message.content):
+        elif pat.morning.fullmatch(message.content):
             response = random.choice([
                 "[](/grinlestia) A wonderful morning to you, {}!",
                 "[](/celestia) Good morning, {}!"
             ])
             await ai_response(message.channel, response.format(message.author.mention))
-        elif re_bap.match(message.content):
+        elif pat.bap.match(message.content):
             response = random.choice([
                 "[](/celestiasad)",
                 "[](/tiam04)"
             ])
             await ai_response(message.channel, response)
-        elif re_konami.search(message.content):
-            await bot.change_nickname(message.server.me, "LVL 100 SUPERPONY EX+")
-            await bot.send_message(message.channel, "[](/octybelleintensifies)")
+        elif pat.konami.search(message.content):
+            await message.guild.me.edit(nick="LVL 100 SUPERPONY EX+")
+            await message.channel.send("[](/octybelleintensifies)")
             await asyncio.sleep(15)
-            await bot.change_nickname(message.server.me, None)
-        elif re_derpi.search(message.content):
-            post_id_raw = re_derpi.search(message.content).group().split("/")[-1]
+            await message.guild.me.edit(nick=None)
+        elif pat.derpi.search(message.content):
+            post_id_raw = pat.derpi.search(message.content).group().split("/")[-1]
             post_id = re.match("\d+", post_id_raw).group()
-            await bot.send_message(message.channel, "<http://derpibooru.org/{}>".format(post_id))
+            await message.channel.send("<http://derpibooru.org/{}>".format(post_id))
         else:
             # starts processing of commands
             if message.content:
@@ -141,33 +122,33 @@ async def on_message(message):
 
 
 async def ai_response(channel, message, wait=1):
-    await bot.send_typing(channel)
-    await asyncio.sleep(wait)
-    await bot.send_message(channel, message)
+    async with channel.typing():
+        await asyncio.sleep(wait)
+        await channel.send(message)
 
 
 @bot.command(hidden = True)
-@checks.is_me()
-async def load(extension_name: str):
+@commands.is_owner()
+async def load(ctx, extension_name: str):
     """Loads an extension."""
     try:
         bot.load_extension(extension_name)
     except (AttributeError, ImportError) as e:
-        await bot.say("```py\n{}: {}\n```".format(type(e).__name__, str(e)))
+        await ctx.send("```py\n{}: {}\n```".format(type(e).__name__, str(e)))
         return
-    await bot.say("{} loaded.".format(extension_name))
+    await ctx.send("{} loaded.".format(extension_name))
 
 
 @bot.command(hidden = True)
-@checks.is_me()
-async def unload(extension_name: str):
+@commands.is_owner()
+async def unload(ctx, extension_name: str):
     """Unloads an extension."""
     bot.unload_extension(extension_name)
-    await bot.say("{} unloaded.".format(extension_name))
+    await ctx.send("{} unloaded.".format(extension_name))
 
 
-@bot.command(hidden = True, pass_context=True)
-@checks.is_me()
+@bot.command(hidden = True)
+@commands.is_owner()
 async def reload(ctx, extension_name: str):
     """Reloads an extension."""
     await ctx.invoke(unload, extension_name)

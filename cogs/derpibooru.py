@@ -24,7 +24,7 @@ class Derpibooru:
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=['derpibooruuserswhatdotheytagdotheytagthingsletsfindout'], pass_context=True)
+    @commands.command(aliases=['derpibooruuserswhatdotheytagdotheytagthingsletsfindout'])
     @commands.cooldown(1, 10, commands.BucketType.channel)
     async def guess(self, ctx, opponent: discord.Member=None):
         """
@@ -46,25 +46,29 @@ class Derpibooru:
 
         # basic turn structure
         async def turn(player):
-            await self.bot.say("{0.user.display_name}! Guess a tag!".format(player))
-            msg = await self.bot.wait_for_message(timeout=60, check=check, channel=channel, author=player.user)
-            if not msg:
-                await self.bot.say("Timeout! This counts as a wrong guess.")
+            await ctx.send("{0.user.display_name}! Guess a tag!".format(player))
+            def check(msg):
+                # parantheses to comment ingame
+                return not re.fullmatch("\(.*\)", msg.content, re.IGNORECASE) and msg.channel == ctx.channel and msg.author == player.user
+            try:
+                msg = await self.bot.wait_for("message", check=check, timeout=60)
+            except asyncio.TimeoutError:
+                await ctx.send("Timeout! This counts as a wrong guess.")
                 player.wrong += 1
                 if player.wrong >= 3:
-                    await self.bot.say("This is your 3rd wrong guess! You're out!")
+                    await ctx.send("This is your 3rd wrong guess! You're out!")
                 return
             guess = msg.content.lower()
             if guess == "stop!":
-                await self.bot.say("Cancelling the game.")
-                await self.bot.say(search.url)
-                # exit signal
+                await ctx.send("Cancelling the game.")
+                await ctx.send(search.url)
+                # exit flag
                 return True
             elif guess in guessed_tags or guess in guessed_artists:
-                await self.bot.say("You guessed that tag already!")
+                await ctx.send("You guessed that tag already!")
                 return
             elif guess in query:
-                await self.bot.say("You can't guess default tags!")
+                await ctx.send("You can't guess default tags!")
             elif guess in artist_tags:
                 player.count += 1
                 guessed_artists.append(guess)
@@ -76,7 +80,7 @@ class Derpibooru:
                     artist_str = "One artist tag remaining."
                 else:
                     artist_str = "{} artist tags remaining.".format(artist_count)
-                await self.bot.say("You correctly guessed an artist tag! +1 point! {}".format(artist_str))
+                await ctx.send("You correctly guessed an artist tag! +1 point! {}".format(artist_str))
             elif guess in search.tags:
                 player.count += 1
                 guessed_tags.append(guess)
@@ -88,44 +92,40 @@ class Derpibooru:
                     remaining_str = "One tag remaining!"
                 else:
                     remaining_str = "{} tags remaining!".format(remaining)
-                await self.bot.say("You correctly guessed a tag! +1 point! {}".format(remaining_str))
+                await ctx.send("You correctly guessed a tag! +1 point! {}".format(remaining_str))
                 return
             elif any((compare(guess, x) >= 0.7) for x in remaining_tags):
                 player.wrong +=1
-                await self.bot.say("Wrong, but you're close!")
+                await ctx.send("Wrong, but you're close!")
                 if player.wrong >= 3:
-                    await self.bot.say("This is your 3rd wrong guess. You're out!")
+                    await ctx.send("This is your 3rd wrong guess. You're out!")
                 return
             else:
                 player.wrong += 1
-                await self.bot.say("You guessed wrong.")
+                await ctx.send("You guessed wrong.")
                 if player.wrong >= 3:
-                    await self.bot.say("This is your 3rd wrong guess! You're out!")
+                    await ctx.send("This is your 3rd wrong guess! You're out!")
                 return
 
-        # parantheses to comment ingame
-        def check(msg):
-            return not re.fullmatch("\(.*\)", msg.content, re.IGNORECASE)
-
-        channel = ctx.message.channel
 
         # separating singleplayer and multiplayer
         if multiplayer:
 
-            challenger = ctx.message.author
+            challenger = ctx.author
 
-            await self.bot.say("{0.mention}! You've been challenged to a derpibooru guessing game by {1.mention}! Do you accept?".format(opponent, challenger))
+            await ctx.send("{0.mention}! You've been challenged to a derpibooru guessing game by {1.mention}! Do you accept?".format(opponent, challenger))
             def challenge_check(msg):
-                return re.fullmatch("(y(es)?|n(o)?)", msg.content, re.IGNORECASE)
-            msg = await self.bot.wait_for_message(timeout=60, check=challenge_check, channel=channel, author=opponent)
-            if msg and re.fullmatch("y(es)?", msg.content, re.IGNORECASE):
-                await self.bot.say("{} accepts!".format(opponent.display_name))
-            elif not msg:
-                await self.bot.say("Timeout. Exiting.")
+                return re.fullmatch("(y(es)?|no?)", msg.content, re.IGNORECASE) and msg.author == opponent and msg.channel == ctx.channel
+            try:
+                msg = await self.bot.wait_for("message", check=challenge_check, timeout=60)
+            except asyncio.TimeoutError:
+                await ctx.send("Timeout. Exiting.")
+                return
+            if re.fullmatch("no?", msg.content, re.IGNORECASE):
+                await ctx.send("Challenge denied. Exiting.")
                 return
             else:
-                await self.bot.say("Challenge denied. Exiting.")
-                return
+                await ctx.send("{} accepts!".format(opponent.display_name))
 
             player1 = Player(challenger)
             player2 = Player(opponent)
@@ -138,18 +138,18 @@ class Derpibooru:
                 active_player = player2
                 inactive_player = player1
 
-            await self.bot.say("{} begins!".format(active_player.user.mention))
+            await ctx.send("{} begins!".format(active_player.user.mention))
 
         else:
-            active_player = Player(ctx.message.author)
-            await self.bot.say("Starting singleplayer game for {}!".format(active_player.user.mention))
+            active_player = Player(ctx.author)
+            await ctx.send("Starting singleplayer game for {}!".format(active_player.user.mention))
 
         # get random derpibooru image
         with open("cogs/derpibooru_query.json") as f:
             query = json.load(f)
 
         search = next(d.Search().query(*query).sort_by(d.sort.RANDOM).limit(1))
-        await self.bot.say(search.full)
+        await ctx.send(search.full)
 
         guessed_tags = []
         guessed_artists = []
@@ -159,11 +159,11 @@ class Derpibooru:
         tag_count = len(remaining_tags)
 
         if artist_count == 0:
-            await self.bot.say("This picture has {} tags and no artist tag.".format(tag_count))
+            await ctx.send("This picture has {} tags and no artist tag.".format(tag_count))
         elif artist_count == 1:
-            await self.bot.say("This picture has {} tags and an artist tag.".format(tag_count))
+            await ctx.send("This picture has {} tags and an artist tag.".format(tag_count))
         else:
-            await self.bot.say("This picture has {} tags and {} artist tags.".format(tag_count, artist_count))
+            await ctx.send("This picture has {} tags and {} artist tags.".format(tag_count, artist_count))
 
 
         playing = True
@@ -171,9 +171,9 @@ class Derpibooru:
 
         # game loop
         while playing:
-            signal = await turn(active_player)
-            # checking for exit signal
-            if signal:
+            exit_flag = await turn(active_player)
+            if exit_flag:
+                # ending the program if the exit flag is received
                 return
             if not remaining_tags:
                 all_tags = True
@@ -215,7 +215,7 @@ class Derpibooru:
         else:
             output = "{0}\n\nYou earned {1.count} points!\n\n{2}".format(unguessed, active_player, search.url)
 
-        await self.bot.say(output)
+        await ctx.send(output)
 
 def setup(bot):
     bot.add_cog(Derpibooru(bot))

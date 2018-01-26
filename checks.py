@@ -16,26 +16,17 @@ except FileNotFoundError:
 config = configparser.ConfigParser()
 config.read("config.ini")
 
-owner = config["Authentication"]["owner"]
+owner = int(config["Authentication"]["owner"])
 mod_roles = [x.strip() for x in config['Authentication']['mod_roles'].split(",")]
-testserver_id = config['Servers']['testserver_id']
+testserver_id = int(config['Servers']['testserver_id'])
 
 # Check functions to check for permissions
-def is_me_check(ctx):
-    return ctx.message.author.id == owner
-
-def is_me():
-    return commands.check(is_me_check)
 
 
-def is_me_or_mod_check(ctx):
-    if is_me_check(ctx):
-        return True
-    else:
-        return discord.utils.find(lambda x: x.name in mod_roles, ctx.message.author.roles)
-
-def is_me_or_mod():
-    return commands.check(is_me_or_mod_check)
+def is_mod():
+    async def predicate(ctx):
+        return await ctx.bot.is_owner(ctx.author) or discord.utils.find(lambda r: r.name in mod_roles, ctx.author.roles)
+    return commands.check(predicate)
 
 
 def is_not_blacklisted(ctx):
