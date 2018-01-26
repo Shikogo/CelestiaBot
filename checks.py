@@ -32,7 +32,7 @@ def is_me_or_mod_check(ctx):
     if is_me_check(ctx):
         return True
     else:
-        return discord.utils.find(lambda m: m.name in mod_roles, ctx.message.author.roles)
+        return discord.utils.find(lambda x: x.name in mod_roles, ctx.message.author.roles)
 
 def is_me_or_mod():
     return commands.check(is_me_or_mod_check)

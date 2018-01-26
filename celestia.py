@@ -56,21 +56,17 @@ async def on_ready():
 @bot.event
 async def on_command_error(error, ctx):
     """Runs if a bot command raises an error."""
-    if isinstance(error, discord.ext.commands.errors.CheckFailure):
-        await bot.send_message(
-            ctx.message.channel,
+    if isinstance(error, commands.errors.CheckFailure):
+        await bot.send_message(ctx.message.channel,
             "Sorry, you are not allowed to use this command.")
-    elif isinstance(error, discord.ext.commands.errors.CommandNotFound):
-        await bot.send_message(
-            ctx.message.channel,
+    elif isinstance(error, commands.errors.CommandNotFound):
+        await bot.send_message(ctx.message.channel,
             "`{0}{1}` is not a valid command. Try `{0}help`.".format(ctx.prefix, ctx.invoked_with))
-    elif isinstance(error, discord.ext.commands.errors.CommandOnCooldown):
-        await bot.send_message(
-            ctx.message.channel,
+    elif isinstance(error, commands.errors.CommandOnCooldown):
+        await bot.send_message(ctx.message.channel,
             "This command is on cooldown. You may use it again in {0}s.".format(round(error.retry_after, 1)))
     else:
-        await bot.send_message(
-            ctx.message.channel,
+        await bot.send_message(ctx.message.channel,
             "```py\n{}: {}\n```".format(type(error).__name__, str(error)))
         raise error
 
