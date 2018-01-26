@@ -22,8 +22,8 @@ class RP:
         self.bot = bot
 
 
-    @commands.command(hidden=True)
-    async def rollscores(self):
+    @commands.command()
+    async def rollscores(self, ctx):
         """
         Generates ability scores based on the default pathfinder system.
         """
@@ -41,20 +41,20 @@ class RP:
         for i in range(6):
             result += output(abilities[i], values[i])
 
-        await self.bot.say(result)
+        await ctx.send(result)
 
-    @commands.group(pass_context=True, aliases = ['swxp'])
+    @commands.group(aliases = ['swxp'])
     async def sw_xp(self, ctx):
         """ Displays XP from the shipwrecked campaign. """
         if ctx.invoked_subcommand is None:
             with open('database/sw_xp.json') as f:
                 xp = json.load(f)
 
-            await self.bot.say("The current XP total is **{0}**. The last XP gain was {1} on {2}.".format(xp[0], xp[1], xp[2]))
+            await ctx.send("The current XP total is **{0}**. The last XP gain was {1} on {2}.".format(xp[0], xp[1], xp[2]))
 
     @sw_xp.command()
-    @checks.is_me_or_mod()
-    async def add(self, gain: int):
+    @checks.is_mod()
+    async def add(self, ctx, gain: int):
         """ Adds XP. Mod only. """
         with open('database/sw_xp.json') as f:
             xp = json.load(f)
@@ -66,10 +66,10 @@ class RP:
         with open('database/sw_xp.json', 'w') as f:
             json.dump(xp, f)
 
-        await self.bot.say("**{1}** XP added. New total: {0}.".format(xp[0], xp[1]))
+        await ctx.send("**{1}** XP added. New total: {0}.".format(xp[0], xp[1]))
 
     @commands.command()
-    async def pathfinder(self, *, spell):
+    async def pathfinder(self, ctx, *, spell):
         """ Retrieves information about a spell in pathfinder. """
 
         spell_data = conn.execute("SELECT * FROM spells WHERE name LIKE ?", (spell,)).fetchone()
@@ -93,36 +93,36 @@ class RP:
                 "**Saving Throw** {saving_throw}; **Spell Resistance** {spell_resistence}\n\n".format(**spell_data)
                 )
 
-            await self.bot.say(output + desc)
+            await ctx.send(output + desc)
 
 
         else:
-            await self.bot.say("I didn't find anything!")
+            await ctx.send("I didn't find anything!")
 
     @commands.command()
-    async def pf_search(self, search):
+    async def pf_search(self, ctx, search):
         """ Searching for Pathfinder spells, I guess."""
 
         spell_list = conn.execute("SELECT name FROM spells WHERE name LIKE ?", ("%{}%".format(search),)).fetchall()
 
         if spell_list:
             search_results = ", ".join(spell[0] for spell in spell_list)
-            await self.bot.say("Search results: {}".format(search_results))
+            await ctx.send("Search results: {}".format(search_results))
 
         else:
-            await self.bot.say("Nothing found.")
+            await ctx.send("Nothing found.")
 
 
     @commands.command()
-    async def roll_range(self, x: int, y: int):
+    async def roll_range(self, ctx, x: int, y: int):
         """ Generates a random number between x and y """
 
         if x >= y:
-            await self.bot.say("The first number needs to be smaller than the second!")
+            await ctx.send("The first number needs to be smaller than the second!")
 
         else:
             random_number = random.randint(x, y)
-            await self.bot.say("Your random number is: {}".format(random_number))
+            await ctx.send("Your random number is: {}".format(random_number))
 
 
 
