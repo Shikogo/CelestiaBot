@@ -1,13 +1,14 @@
-aiohttp==1.0.5
+aiohttp==2.2.5
 async-timeout==2.0.0
 beautifulsoup4==4.6.0
 certifi==2018.1.18
 chardet==3.0.4
 DerPyBooru==0.7.3
-discord.py==0.16.12
+discord.py==1.0.0a1428+g4fef6fc
 idna==2.6
 multidict==4.0.0
 Pillow==5.0.0
 requests==2.18.4
 urllib3==1.22
 websockets==3.4
+yarl==1.1.0
