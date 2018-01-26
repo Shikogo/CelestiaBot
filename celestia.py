@@ -43,8 +43,10 @@ async def on_ready():
     bot.add_check(checks.is_not_blacklisted)
     await bot.change_presence(game=discord.Game(name=game))
 
-    if bot.servers:
-        print("Connected to: {}".format(", ".join([server.name for server in bot.servers])))
+    server_list = [server.name for server in bot.servers if server.name]
+
+    if server_list:
+        print("Connected to: {}".format(", ".join(server_list)))
     else:
         print("No servers connected.")
 
