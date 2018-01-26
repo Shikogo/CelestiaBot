@@ -1,8 +1,6 @@
 import argparse
 import asyncio
 import aiohttp
-from difflib import SequenceMatcher
-import random
 import sqlite3
 
 import checks
@@ -18,9 +16,9 @@ class ArtTools:
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(hidden=True, aliases=['pdb'])
-    async def pony_database(self, *, pony="random"):
-        """ testing the new pony database """
+    @commands.command(aliases=['pdb'], hidden=True)
+    async def pony_database(self, ctx, *, pony="random"):
+        """ A pony database. Still work in progress. """
 
         if pony == "random":
             result = conn.execute('SELECT * FROM ponies ORDER BY RANDOM() LIMIT 1;').fetchone()
@@ -47,14 +45,14 @@ class ArtTools:
 
                         "{url}{image}".format(**result, first_app=first_app, url=url))
 
-            await self.bot.say(output)
+            await ctx.send(output)
 
         else:
-            await self.bot.say("No pony of that name found.")
+            await ctx.send("No pony of that name found.")
 
 
     @commands.command(hidden=True)
-    async def pdb_search(self, *args):
+    async def pdb_search(self, ctx, *args):
         """
         Allows advanced searching of the pony database.
 
@@ -71,7 +69,7 @@ class ArtTools:
             result = parser.parse_args(args)
         except SystemExit:
             usage = parser.format_help()
-            await self.bot.say(usage)
+            await ctx.send(usage)
             return
 
         name, kind, category = "%", "%", "%"
@@ -87,13 +85,13 @@ class ArtTools:
         result = conn.execute('SELECT * FROM ponies WHERE name LIKE ? AND kind LIKE ? AND category LIKE ?', (name, kind, category)).fetchone()
 
         if result:
-            await self.bot.say(result['name'])
+            await ctx.send(result['name'])
         else:
-            await self.bot.say("Nope")
+            await ctx.send("Nope")
 
 
     @commands.command(aliases = ["randompony"])
-    async def rpony(self):
+    async def rpony(self, ctx):
         """ Returns a random pony. """
 
         result = conn.execute('SELECT * FROM ponies ORDER BY RANDOM() LIMIT 1;').fetchone()
@@ -105,64 +103,7 @@ class ArtTools:
 
         output = ("**{name}**\n{link_format}{image}".format(**result, link_format=link_format))
 
-        await self.bot.say(output)
-
-
-    # @commands.command(aliases = ["cs", "choosestudy"])
-    # async def study(self, *, topic="random"):
-    #     """
-    #     Returns a random topic to study.
-    #     Can be called with a topic already selected to return a related link.
-    #
-    #     List of topics:
-    #     anatomy, constructive form, expressions, gesture, composition,
-    #     perspective, light and shadow, linework, color theory, master studies
-    #
-    #     Still under heavy construction.
-    #     """
-    #     topics = [
-    #         ("anatomy", 3),
-    #         ("constructive form", 3),
-    #         ("expressions", 3),
-    #         ("gesture", 3),
-    #
-    #         ("composition", 2),
-    #         ("perspective", 2),
-    #         ("light and shadow", 2),
-    #         ("linework", 2),
-    #
-    #         ("color theory", 1),
-    #
-    #         ("master studies", 2),
-    #         ("favorite artist", 3)
-    #     ]
-    #     links = {
-    #         "anatomy": "https://uwdc.library.wisc.edu/collections/Science/VetAnatImgs/",
-    #         "constructive form": "http://www.ctrlpaint.com/videos/constructive-form-pt-1",
-    #         "expressions": "http://www.lackadaisycats.com/gallery/1295341707.jpg",
-    #         "gesture": "https://www.youtube.com/watch?v=74HR59yFZ7Y",
-    #
-    #         "composition": "https://www.youtube.com/watch?v=aHq5KwFvtns",
-    #         "perspective": "https://www.youtube.com/watch?v=0xnfQScu8cE",
-    #         "light and shadow": "https://www.youtube.com/watch?v=-dqGkHWC5IU",
-    #         "linework": "http://smokinghippo.com/TSOtutes/inking_tutorial.html",
-    #
-    #         "color theory": "http://drawing-tutorials.deviantart.com/art/How-I-See-Color-A-Tutorial-184642625",
-    #
-    #         "master studies": "https://en.wikipedia.org/wiki/Old_Master#Incomplete_list_of_the_most_important_Old_Masters"
-    #     }
-    #
-    #     if not any(x[0] == topic for x in topics):
-    #         population = [val for val, cnt in topics for i in range(cnt)]
-    #         topic = random.choice(population)
-    #
-    #     if topic == "favorite artist":
-    #         await self.bot.say("Study your favorite artist! Just pick a drawing you like and try to figure out how it was done.")
-    #     elif topic == "master studies":
-    #         await self.bot.say("Take some time to study the old masters. If you don't know how to choose, here are some suggestions: {}.".format(links["master studies"]))
-    #         await self.bot.say("If you get stuck, try `?masterstudies`.")
-    #     else:
-    #         await self.bot.say("Time to study {}! Here's a link to get you started: {}".format(topic, links[topic]))
+        await ctx.send(output)
 
 
 def setup(bot):
