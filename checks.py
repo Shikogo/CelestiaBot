@@ -24,7 +24,7 @@ testserver_id = int(config['Servers']['testserver_id'])
 
 def is_mod():
     async def predicate(ctx):
-        return await ctx.bot.is_owner(ctx.author) or discord.utils.find(lambda r: r.name in mod_roles, ctx.author.roles)
+        return await ctx.bot.is_owner(ctx.author) or any(role.name in mod_roles for role in ctx.author.roles)
     return commands.check(predicate)
 
 
