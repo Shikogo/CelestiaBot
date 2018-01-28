@@ -6,7 +6,7 @@ import sqlite3
 import checks
 from discord.ext import commands
 
-conn = sqlite3.connect('database/ponies.db')
+conn = sqlite3.connect('./data/ponies.db')
 conn.row_factory = sqlite3.Row
 
 

@@ -12,7 +12,7 @@ from discord.ext import commands
 
 import checks
 
-conn = sqlite3.connect('database/pathfinder.db')
+conn = sqlite3.connect('./data/pathfinder.db')
 conn.row_factory = sqlite3.Row
 
 class RP:
@@ -47,7 +47,7 @@ class RP:
     async def sw_xp(self, ctx):
         """ Displays XP from the shipwrecked campaign. """
         if ctx.invoked_subcommand is None:
-            with open('database/sw_xp.json') as f:
+            with open('./data/sw_xp.json') as f:
                 xp = json.load(f)
 
             await ctx.send("The current XP total is **{0}**. The last XP gain was {1} on {2}.".format(xp[0], xp[1], xp[2]))
@@ -56,14 +56,14 @@ class RP:
     @checks.is_mod()
     async def add(self, ctx, gain: int):
         """ Adds XP. Mod only. """
-        with open('database/sw_xp.json') as f:
+        with open('./data/sw_xp.json') as f:
             xp = json.load(f)
 
         xp[0] += gain                               # add new XP to total and save
         xp[1] = gain                                # save most recent gain
         xp[2] = dt.date.today().strftime("%B %d")   # save formatted date as string
 
-        with open('database/sw_xp.json', 'w') as f:
+        with open('./data/sw_xp.json', 'w') as f:
             json.dump(xp, f)
 
         await ctx.send("**{1}** XP added. New total: {0}.".format(xp[0], xp[1]))
@@ -76,7 +76,7 @@ class RP:
 
         if spell_data:
 
-            desc_soup = BeautifulSoup(spell_data["description_formated"])
+            desc_soup = BeautifulSoup(spell_data["description_formated"], "html.parser")
             for p in desc_soup.findAll("p"):
                 p.insert_after(desc_soup.new_string("\n\n"))
             desc = desc_soup.get_text()

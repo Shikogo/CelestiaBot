@@ -21,7 +21,7 @@ class Utility:
     def __init__(self, bot):
         self.bot = bot
         try:
-            with open("./database/servers.json") as f:
+            with open("./data/servers.json") as f:
                 self.servers = json.load(f)
         except FileNotFoundError:
             self.servers = {}
@@ -106,13 +106,13 @@ class Utility:
                 if user:
                     names.append(user.name)
                 else:
-                    unidentified.append(user_id)
+                    unidentified.append(str(user_id))
             if names:
-                await ctx.send("These are the users currently blacklisted: {}".format(', '.join(names)))
+                await ctx.send("These are the users currently blacklisted: {}".format(", ".join(names)))
             else:
                 await ctx.send("Currently there are no blacklisted users.")
             if unidentified:
-                await ctx.send("I also found these IDs, but don't know who they are: {}".format(', '.join(unidentified)))
+                await ctx.send("I also found these IDs, but don't know who they are: {}".format(", ".join(unidentified)))
 
     @blacklist.command()
     async def server(self, ctx):
@@ -122,7 +122,7 @@ class Utility:
             if user:
                 names.append(user.name)
         if names:
-            await ctx.send("These are the users currently blacklisted on this server: {}".format(', '.join(names)))
+            await ctx.send("These are the users currently blacklisted on this server: {}".format(", ".join(names)))
         else:
             await ctx.send("Currently there are no blacklisted users on this server.")
 
@@ -136,7 +136,7 @@ class Utility:
         else:
             await ctx.send("That user is already blacklisted.")
 
-    @blacklist.command()
+    @blacklist.command(aliases=["rm"])
     async def remove(self, ctx, user: discord.Member):
         if user.id in checks.blacklist:
             checks.blacklist.remove(user.id)

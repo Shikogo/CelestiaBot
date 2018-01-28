@@ -8,7 +8,7 @@ class Blacklisted(commands.CommandError): pass
 
 # blacklist
 try:
-    with open('blacklist.json') as f:
+    with open('./data/blacklist.json') as f:
         blacklist = set(json.load(f))
 except FileNotFoundError:
     blacklist = set()
