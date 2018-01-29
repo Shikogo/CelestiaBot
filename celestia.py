@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import asyncio
 import configparser
@@ -39,7 +39,6 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print("------")
-
 
     bot.add_check(checks.is_not_blacklisted)
     await bot.change_presence(game=discord.Game(name=game))
