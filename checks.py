@@ -20,6 +20,8 @@ mod_roles = [x.strip() for x in config['Authentication']['mod_roles'].split(",")
 testserver_id = int(config['Servers']['testserver_id'])
 
 # Check functions to check for permissions
+
+
 def is_mod():
     async def predicate(ctx):
         return await ctx.bot.is_owner(ctx.author) or any(role.name in mod_roles for role in ctx.author.roles)
