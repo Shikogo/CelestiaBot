@@ -297,7 +297,7 @@ class Derpi:
 
     @alias.command()
     async def check(self, ctx, *, tag):
-        """Returns what tag a given tag is aliased to, if any."""
+        """Returns a tag's aliases, if any."""
 
         with open("./data/aliases.json") as f:
             aliases = json.load(f)
@@ -307,18 +307,11 @@ class Derpi:
         if aliased_to:
             await ctx.send("{} -> {}".format(tag, aliased_to))
         else:
-            await ctx.send("No alias found.")
-
-    @alias.command()
-    async def reverse(self, ctx, *, base_tag):
-        """ Returns which tag a tag is aliased by."""
-
-        with open("./data/aliases.json") as f:
-            aliases = json.load(f)
-
-        aliased_by = [tag for tag, alias in aliases.items() if alias == base_tag]
-
-        await ctx.send("{} is aliased by:\n{}".format(base_tag, ", ".join(aliased_by)))
+            aliased_by = [_tag for _tag, alias in aliases.items() if alias == tag]
+            if aliased_by:
+                await ctx.send("{} <- {}".format(tag, ", ".join(aliased_by)))
+            else:
+                await ctx.send("No alias for {} found.".format(tag))
 
 def setup(bot):
     bot.add_cog(Derpi(bot))
