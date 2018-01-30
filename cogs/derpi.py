@@ -97,8 +97,7 @@ class Derpi:
                     await ctx.send("This is your 3rd wrong guess! You're out!")
                 return False
             guess = msg.content.lower()
-            if guess in aliases.keys():
-                guess = aliases[guess]
+            guess = aliases.get(guess, guess)
             if guess == "stop!":
                 await ctx.send("Cancelling the game.")
                 await ctx.send("{}\n{}".format(search.url, source))
@@ -174,8 +173,7 @@ class Derpi:
         if user_query:
             # replace aliased tags in the user query with their counterparts
             for i in range(len(user_query)):
-                if user_query[i] in aliases.keys():
-                    user_query[i] = aliases[user_query[i]]
+                user_query[i] = aliases.get(user_query[i], user_query[i])
             await ctx.send("The custom tags are: {}".format(", ".join(user_query)))
         # get random derpibooru image
         with open("./data/derpibooru_query.json") as f:
@@ -270,6 +268,57 @@ class Derpi:
             output = "{0}\n\nYou earned {1.count} points!\n\n{2}\n{3}".format(unguessed, active_player, search.url, source)
 
         await ctx.send(output)
+
+    @commands.group(hidden=True)
+    async def alias(self, ctx):
+        """ alias stuff """
+        if ctx.invoked_subcommand is None:
+            await ctx.send("The subcommands are add, check, and reverse.")
+
+    @alias.command()
+    @commands.is_owner()
+    async def add(self, ctx, tag, aliased_to):
+        """
+        Adds aliases. `!help alias add` for usage info.
+
+        Usage:
+        &alias add tag aliased_to
+        """
+        with open("./data/aliases.json") as f:
+            aliases = json.load(f)
+
+        aliases.update([(tag, aliased_to)])
+
+        with open("./data/aliases.json", "w") as f:
+            json.dump(aliases, f)
+
+        await ctx.send("Added {} -> {} to aliases.".format(tag, aliased_to))
+
+
+    @alias.command()
+    async def check(self, ctx, *, tag):
+        """Returns what tag a given tag is aliased to, if any."""
+
+        with open("./data/aliases.json") as f:
+            aliases = json.load(f)
+
+        aliased_to = aliases.get(tag)
+
+        if aliased_to:
+            await ctx.send("{} -> {}".format(tag, aliased_to))
+        else:
+            await ctx.send("No alias found.")
+
+    @alias.command()
+    async def reverse(self, ctx, *, base_tag):
+        """ Returns which tag a tag is aliased by."""
+
+        with open("./data/aliases.json") as f:
+            aliases = json.load(f)
+
+        aliased_by = [tag for tag, alias in aliases.items() if alias == base_tag]
+
+        await ctx.send("{} is aliased by:\n{}".format(base_tag, ", ".join(aliased_by)))
 
 def setup(bot):
     bot.add_cog(Derpi(bot))
