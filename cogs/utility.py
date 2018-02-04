@@ -7,6 +7,7 @@ import random
 import discord
 from discord.ext import commands
 import derpibooru as d
+import aiofiles
 
 import checks
 
@@ -130,8 +131,8 @@ class Utility:
     async def add(self, ctx, user: discord.Member):
         if user.id not in checks.blacklist:
             checks.blacklist.add(user.id)
-            with open('blacklist.json', 'w') as f:
-                json.dump(list(checks.blacklist), f)
+            async with aiofiles.open("blacklist.json", mode="w", loop=self.bot.loop) as f:
+                await f.write(json.dumps(list(checks.blacklist)))
             await ctx.send("{} added to the blacklist.".format(user.name))
         else:
             await ctx.send("That user is already blacklisted.")
@@ -140,8 +141,8 @@ class Utility:
     async def remove(self, ctx, user: discord.Member):
         if user.id in checks.blacklist:
             checks.blacklist.remove(user.id)
-            with open('blacklist.json', 'w') as f:
-                json.dump(list(checks.blacklist), f)
+            async with aiofiles.open("blacklist.json", mode="w", loop=self.bot.loop) as f:
+                await f.write(json.dumps(list(checks.blacklist)))
             await ctx.send("Removed {} from the blacklist.".format(user.name))
         else:
             await ctx.send("That user isn't even blacklisted!")

@@ -7,6 +7,7 @@ import re
 import discord
 from discord.ext import commands
 import derpibooru as d
+import aiofiles
 import requests
 
 import checks
@@ -21,11 +22,16 @@ class Player:
 
 class Tag:
     """Processes guesses."""
-    def __init__(self, name, tags):
+    def __init__(self, name, tags, an=False):
         self.name = name
         self.tags = tags
         self.tag_count = len(self.tags)
         self.guessed_tag_count = 0
+        self.an = an
+        if an:
+            self.an_string = "n "
+        else:
+            self.an_string = " "
 
     async def process_guess(self, ctx, player, guess):
         if guess in self.tags:
@@ -39,7 +45,7 @@ class Tag:
                 remaining_str = "One {} remaining!".format(self.name)
             else:
                 remaining_str = "{} {}s remaining!".format(self.tag_count, self.name)
-            await ctx.send("You correctly guessed a {}! +1 point! {}".format(self.name, remaining_str))
+            await ctx.send("You correctly guessed a{}{}! +1 point! {}".format(self.an_string, self.name, remaining_str))
             return True
         else:
             return False
@@ -61,6 +67,12 @@ class Derpi:
         https://sta.sh/01i7o1l7kvwz
         """
 
+        ### CONSTANTS ###
+        MAX_WRONG_GUESSES = 3
+        MIN_SIMILARITY = 0.7
+        TIMEOUT = 60
+        #################
+
         if args:
             try:
                 # check if first argument is a member
@@ -76,79 +88,30 @@ class Derpi:
             user_query = []
             multiplayer = False
 
-        # check for similarity
-        def compare(a, b):
-            return difflib.SequenceMatcher(None, a, b).ratio()
-
-
-        # basic turn structure
-        async def turn(player):
-            # returns True if the is cancelled
-            await ctx.send("{0.user.display_name}! Guess a tag!".format(player))
-            def check(msg):
-                # parantheses to comment ingame
-                return not re.fullmatch("\(.*\)", msg.content, re.IGNORECASE) and msg.channel == ctx.channel and msg.author == player.user
-            try:
-                msg = await self.bot.wait_for("message", check=check, timeout=60)
-            except asyncio.TimeoutError:
-                await ctx.send("Timeout! This counts as a wrong guess.")
-                player.wrong += 1
-                if player.wrong >= 3:
-                    await ctx.send("This is your 3rd wrong guess! You're out!")
-                return False
-            guess = msg.content.lower()
-            guess = aliases.get(guess, guess)
-            if guess == "stop!":
-                await ctx.send("Cancelling the game.")
-                await ctx.send("{}\n{}".format(search.url, source))
-                # exit flag
-                return True
-            elif guess in guessed_tags:
-                await ctx.send("You guessed that tag already!")
-                return False
-            elif guess in query:
-                await ctx.send("You can't guess default tags!")
-                return False
-            if await tags.process_guess(ctx, player, guess):
-                guessed_tags.append(guess)
-                return False
-            # non-standard tags are separated for better scalability
-            for tag_type in tag_types:
-                if await tag_type.process_guess(ctx, player, guess):
-                    guessed_tags.append(guess)
-                    return False
-            if any((compare(guess, x) >= 0.7) for x in tags.tags):
-                player.wrong +=1
-                await ctx.send("Wrong, but you're close!")
-                if player.wrong >= 3:
-                    await ctx.send("This is your 3rd wrong guess. You're out!")
-                return False
-            else:
-                player.wrong += 1
-                await ctx.send("You guessed wrong.")
-                if player.wrong >= 3:
-                    await ctx.send("This is your 3rd wrong guess! You're out!")
-                return False
-
-
         # separating singleplayer and multiplayer
         if multiplayer:
 
             challenger = ctx.author
 
-            await ctx.send("{0.mention}! You've been challenged to a derpibooru guessing game by {1.mention}! Do you accept?".format(opponent, challenger))
-            def challenge_check(msg):
-                return re.fullmatch("(y(es)?|no?)", msg.content, re.IGNORECASE) and msg.author == opponent and msg.channel == ctx.channel
+            msg = await ctx.send("{0.mention}! You've been challenged to a derpibooru guessing game by {1.mention}! Do you accept?".format(opponent, challenger))
+            await msg.add_reaction("✅")
+            await msg.add_reaction("❌")
+            def check(reaction, user):
+                return user == opponent and str(reaction.emoji) in ("✅", "❌") and reaction.message.id == msg.id
             try:
-                msg = await self.bot.wait_for("message", check=challenge_check, timeout=60)
+                reaction, user = await self.bot.wait_for("reaction_add", check=check, timeout=TIMEOUT)
             except asyncio.TimeoutError:
                 await ctx.send("Timeout. Exiting.")
                 return
-            if re.fullmatch("no?", msg.content, re.IGNORECASE):
+
+            if reaction.emoji == "❌":
                 await ctx.send("Challenge denied. Exiting.")
+                await msg.remove_reaction("✅", ctx.me)
                 return
             else:
+                await msg.remove_reaction("❌", ctx.me)
                 await ctx.send("{} accepts!".format(opponent.display_name))
+
 
             player1 = Player(challenger)
             player2 = Player(opponent)
@@ -168,20 +131,22 @@ class Derpi:
             await ctx.send("Starting singleplayer game for {}!".format(active_player.user.mention))
 
 
-        with open("./data/aliases.json") as f:
-            aliases = json.load(f)
+        async with aiofiles.open("./data/aliases.json", loop=self.bot.loop) as f:
+            aliases = json.loads(await f.read())
         if user_query:
-            # replace aliased tags in the user query with their counterparts
+            # replace tags with aliases where applicable
             for i in range(len(user_query)):
                 user_query[i] = aliases.get(user_query[i], user_query[i])
             await ctx.send("The custom tags are: {}".format(", ".join(user_query)))
         # get random derpibooru image
-        with open("./data/derpibooru_query.json") as f:
-            query = json.load(f) + user_query
+        async with aiofiles.open("./data/derpibooru_query.json", loop=self.bot.loop) as f:
+            query = json.loads(await f.read()) + user_query
 
-        try:
-            search = next(d.Search().query(*query).sort_by(d.sort.RANDOM).limit(1))
-        except StopIteration:
+        def search():
+            return d.Search().query(*query).sort_by(d.sort.RANDOM).limit(1)
+
+        search = next(await self.bot.loop.run_in_executor(None, search), None)
+        if not search:
             await ctx.send("No image found!")
             return
 
@@ -192,10 +157,18 @@ class Derpi:
             source = ""
 
         guessed_tags = []
-        artists = Tag("artist tag", [tag for tag in search.tags if tag.startswith('artist:') and tag not in query])
-        ocs = Tag("OC tag", [tag for tag in search.tags if tag.startswith("oc:") and tag not in query])
+        incorrect = []
+        artists = Tag("artist tag", [tag for tag in search.tags if tag.startswith("artist:") and tag not in query], True)
+        ocs = Tag("OC tag", [tag for tag in search.tags if tag.startswith("oc:") and tag not in query], True)
         tag_types = [artists, ocs]
-        tags = Tag("tag", [tag for tag in search.tags if not any(tag in tag_type.tags for tag_type in tag_types) and not tag in query])
+        rating_tags = ["explicit", "grimdark", "grotesque", "questionable", "safe", "semi-grimdark", "suggestive"]
+        tags = Tag("tag", [
+            tag for tag in search.tags
+            if not any(tag in tag_type.tags for tag_type in tag_types)
+            and not tag in query
+            and not tag.startswith("spoiler:")
+            and not tag in rating_tags
+        ])
         tag_count = tags.tag_count
 
 
@@ -219,6 +192,69 @@ class Derpi:
         playing = True
         all_tags = False
 
+        # check for similarity
+        def compare(a, b):
+            return difflib.SequenceMatcher(None, a, b).ratio()
+
+
+        # basic turn structure
+        async def turn(player):
+            # returns True if the is cancelled
+            await ctx.send("{0.user.display_name}! Guess a tag!".format(player))
+            def check(msg):
+                # parantheses to comment ingame
+                return not re.fullmatch("\(.*\)", msg.content, re.IGNORECASE) and msg.channel == ctx.channel and msg.author == player.user
+            try:
+                msg = await self.bot.wait_for("message", check=check, timeout=TIMEOUT)
+            except asyncio.TimeoutError:
+                await ctx.send("Timeout! This counts as a wrong guess.")
+                player.wrong += 1
+                if player.wrong >= MAX_WRONG_GUESSES:
+                    await ctx.send("This is your 3rd wrong guess! You're out!")
+                return False
+            guess = msg.content.lower()
+            alias = aliases.get(guess)
+            if alias:
+                await ctx.send("Replacing **{}** with alias **{}**.".format(guess, alias))
+                guess = alias
+            if guess == "stop!":
+                await ctx.send("Cancelling the game.")
+                await ctx.send("{}\n{}".format(search.url, source))
+                # exit flag
+                return True
+            elif guess in guessed_tags:
+                await ctx.send("You guessed that tag already!")
+                return False
+            elif guess in query:
+                await ctx.send("You can't guess default tags!")
+                return False
+            elif guess in rating_tags:
+                await ctx.send("You can't guess rating tags!")
+                return False
+            if await tags.process_guess(ctx, player, guess):
+                guessed_tags.append(guess)
+                return False
+            # non-standard tags are separated for better scalability
+            for tag_type in tag_types:
+                if await tag_type.process_guess(ctx, player, guess):
+                    guessed_tags.append(guess)
+                    return False
+            if any((compare(guess, x) >= MIN_SIMILARITY) for x in tags.tags):
+                player.wrong +=1
+                incorrect.append(guess)
+                await ctx.send("Wrong, but you're close!")
+                if player.wrong >= MAX_WRONG_GUESSES:
+                    await ctx.send("This is your 3rd wrong guess. You're out!")
+                return False
+            else:
+                player.wrong += 1
+                incorrect.append(guess)
+                await ctx.send("You guessed wrong.")
+                if player.wrong >= MAX_WRONG_GUESSES:
+                    await ctx.send("This is your 3rd wrong guess! You're out!")
+                return False
+
+
         # game loop
         while playing:
             exit_flag = await turn(active_player)
@@ -230,12 +266,12 @@ class Derpi:
                 playing = False
             # multiplayer lose condition
             elif multiplayer:
-                if active_player.wrong >= 3 and inactive_player.wrong >= 3:
+                if active_player.wrong >= MAX_WRONG_GUESSES and inactive_player.wrong >= MAX_WRONG_GUESSES:
                     playing = False
-                elif inactive_player.wrong < 3:
+                elif inactive_player.wrong < MAX_WRONG_GUESSES:
                     active_player, inactive_player = inactive_player, active_player
             # singeplayer lose condition
-            elif active_player.wrong >= 3:
+            elif active_player.wrong >= MAX_WRONG_GUESSES:
                 playing = False
 
         # multiplayer winner message
@@ -259,15 +295,40 @@ class Derpi:
             tag_ratio = round((tags.guessed_tag_count / tag_count) * 100)
             unguessed = "You guessed {}% of all tags! You didn't guess these tags: {}".format(tag_ratio, ", ".join(tags.tags))
 
+        incorrect_str = "Incorrect guesses: {}.\nConsider adding missing tags!".format(", ".join(incorrect))
+
         # multiplayer and singleplayer score output
         if multiplayer:
-            output = "{0}\n\n{1.user.display_name} has earned {1.count} points. {2.user.display_name} has earned {2.count} points.\n\n{3}\n\n{4}\n{5}".format(
-                unguessed, player1, player2, winner_string, search.url, source
+            output = (
+
+                "{unguessed}\n\n{incorrect}\n\n"
+                "{p1.user.display_name} has earned {p1.count} points. {p2.user.display_name} has earned {p2.count} points.\n\n"
+                "{winner_string}\n\n{url}\n{source}".format(
+                    unguessed=unguessed,
+                    incorrect=incorrect_str,
+                    p1=player1,
+                    p2=player2,
+                    winner_string=winner_string,
+                    url=search.url,
+                    source=source
+                )
+
             )
         else:
-            output = "{0}\n\nYou earned {1.count} points!\n\n{2}\n{3}".format(unguessed, active_player, search.url, source)
+            output = (
+                "{unguessed}\n\n{incorrect}\n\n"
+                "You earned {p.count} points!\n\n"
+                "{url}\n{source}".format(
+                    unguessed=unguessed,
+                    incorrect=incorrect_str,
+                    p=active_player,
+                    url=search.url,
+                    source=source
+                )
+            )
 
         await ctx.send(output)
+
 
     @commands.group(hidden=True)
     async def alias(self, ctx):
@@ -275,32 +336,73 @@ class Derpi:
         if ctx.invoked_subcommand is None:
             await ctx.send("The subcommands are add, check, and reverse.")
 
-    @alias.command()
+
+    @alias.command(aliases=["a"])
     @commands.is_owner()
-    async def add(self, ctx, tag, aliased_to):
+    async def add(self, ctx):
         """
         Adds aliases. `!help alias add` for usage info.
 
         Usage:
         &alias add tag aliased_to
         """
-        with open("./data/aliases.json") as f:
-            aliases = json.load(f)
+        async with aiofiles.open("./data/aliases.json", loop=self.bot.loop) as f:
+            aliases = json.loads(await f.read())
 
-        aliases.update([(tag, aliased_to)])
+        def check(msg):
+            return msg.author == ctx.author and msg.channel == ctx.channel
 
-        with open("./data/aliases.json", "w") as f:
-            json.dump(aliases, f)
+        await ctx.send("Please name the tag you want to alias **to**.")
+        try:
+            msg = await self.bot.wait_for("message", check=check, timeout=TIMEOUT)
+        except asyncio.TimeoutError:
+            await ctx.send("Timeout. Exiting.")
+            return
+        target_tag = msg.content.lower()
 
-        await ctx.send("Added {} -> {} to aliases.".format(tag, aliased_to))
+        await ctx.send("Please name the tag or tags you want to alias **from**, separated by commas.")
+        try:
+            msg = await self.bot.wait_for("message", check=check, timeout=TIMEOUT)
+        except asyncio.TimeoutError:
+            await ctx.send("Timeout. Exiting.")
+            return
+        aliased_by = [tag.strip() for tag in msg.content.lower().split(",")]
+
+        for tag in aliased_by:
+            await ctx.send(tag)
+            aliases.update([(tag, target_tag)])
+
+        async with aiofiles.open("./data/aliases.json", mode="w", loop=self.bot.loop) as f:
+            await f.write(json.dumps(aliases))
+
+        await ctx.send("Added {} -> {} to aliases.".format(", ".join(aliased_by), target_tag))
 
 
-    @alias.command()
+    @alias.command(aliases=["rm"])
+    @commands.is_owner()
+    async def remove(self, ctx, *, tag):
+        """Removes a tag from the alias database."""
+        async with aiofiles.open("./data/aliases.json", loop=self.bot.loop) as f:
+            aliases = json.loads(await f.read())
+
+        target_tag = aliases.pop(tag, None)
+
+        if not target_tag:
+            await ctx.send("{} is not in the alias database.".format(tag))
+            return
+
+        async with aiofiles.open("./data/aliases.json", mode="w", loop=self.bot.loop) as f:
+            await f.write(json.dumps(aliases))
+
+        await ctx.send("Removed {} -> {} from the database.".format(tag, target_tag))
+
+
+    @alias.command(aliases=["c"])
     async def check(self, ctx, *, tag):
         """Returns a tag's aliases, if any."""
 
-        with open("./data/aliases.json") as f:
-            aliases = json.load(f)
+        async with aiofiles.open("./data/aliases.json", loop=self.bot.loop) as f:
+            aliases = json.loads(await f.read())
 
         aliased_to = aliases.get(tag)
 

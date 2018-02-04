@@ -5,6 +5,7 @@ import configparser
 import logging
 import random
 import re
+import uvloop
 
 import discord
 from discord.ext import commands
@@ -155,4 +156,5 @@ async def reload(ctx, extension_name: str):
 
 if __name__ == "__main__":
     token = config['Authentication']['token']
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     bot.run(token, bot=True)
