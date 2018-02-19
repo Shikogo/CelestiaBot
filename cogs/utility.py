@@ -16,6 +16,9 @@ config.read("config.ini")
 
 source = config['Bot']['source_url']
 
+timers = {}
+
+
 class Utility:
     """Contains utility commands."""
 
