@@ -1,4 +1,5 @@
-["safe",
+["-spoiler:s08*",
+ "-leak",
  "-spoiler:comic",
  "-spoiler:s07e2*",
  "-comic",
