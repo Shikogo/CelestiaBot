@@ -1,0 +1,6 @@
+["safe",
+ "-spoiler:comic",
+ "-spoiler:s07e2*",
+ "-comic",
+ "created_at.gte:2013",
+ "score.gte:20"]
