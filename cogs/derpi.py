@@ -346,6 +346,9 @@ class Derpi:
         Usage:
         &alias add tag aliased_to
         """
+
+        TIMEOUT = 60
+
         async with aiofiles.open("./data/aliases.json", loop=self.bot.loop) as f:
             aliases = json.loads(await f.read())
 
