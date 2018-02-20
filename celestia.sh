@@ -1,7 +1,7 @@
 # a hacky script that automatically restarts the bot on crash
 :() {
 	(
-		./celestia.py
+		python3 celestia.py
 		sleep 5
 		:
 	)
