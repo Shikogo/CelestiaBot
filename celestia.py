@@ -123,7 +123,7 @@ async def on_message(message):
 
 async def ai_response(channel, message, wait=1):
     async with channel.typing():
-        await asyncio.sleep(wait)
+        await asyncio.sleep(wait, loop=bot.loop)
         await channel.send(message)
 
 
