@@ -131,7 +131,7 @@ class Derpi:
             await ctx.send("Starting singleplayer game for {}!".format(active_player.user.mention))
 
 
-        async with aiofiles.open("./data/aliases.json", loop=self.bot.loop) as f:
+        async with aiofiles.open("./data/aliases.json") as f:
             aliases = json.loads(await f.read())
         if user_query:
             # replace tags with aliases where applicable
@@ -139,7 +139,7 @@ class Derpi:
                 user_query[i] = aliases.get(user_query[i], user_query[i])
             await ctx.send("The custom tags are: {}".format(", ".join(user_query)))
         # get random derpibooru image
-        async with aiofiles.open("./data/derpibooru_query.json", loop=self.bot.loop) as f:
+        async with aiofiles.open("./data/derpibooru_query.json") as f:
             query = json.loads(await f.read()) + user_query
 
         def search():
@@ -349,7 +349,7 @@ class Derpi:
 
         TIMEOUT = 60
 
-        async with aiofiles.open("./data/aliases.json", loop=self.bot.loop) as f:
+        async with aiofiles.open("./data/aliases.json") as f:
             aliases = json.loads(await f.read())
 
         def check(msg):
@@ -375,7 +375,7 @@ class Derpi:
             await ctx.send(tag)
             aliases.update([(tag, target_tag)])
 
-        async with aiofiles.open("./data/aliases.json", mode="w", loop=self.bot.loop) as f:
+        async with aiofiles.open("./data/aliases.json", mode="w") as f:
             await f.write(json.dumps(aliases))
 
         await ctx.send("Added {} -> {} to aliases.".format(", ".join(aliased_by), target_tag))
@@ -385,7 +385,7 @@ class Derpi:
     @commands.is_owner()
     async def remove(self, ctx, *, tag):
         """Removes a tag from the alias database."""
-        async with aiofiles.open("./data/aliases.json", loop=self.bot.loop) as f:
+        async with aiofiles.open("./data/aliases.json") as f:
             aliases = json.loads(await f.read())
 
         target_tag = aliases.pop(tag, None)
@@ -394,7 +394,7 @@ class Derpi:
             await ctx.send("{} is not in the alias database.".format(tag))
             return
 
-        async with aiofiles.open("./data/aliases.json", mode="w", loop=self.bot.loop) as f:
+        async with aiofiles.open("./data/aliases.json", mode="w") as f:
             await f.write(json.dumps(aliases))
 
         await ctx.send("Removed {} -> {} from the database.".format(tag, target_tag))
@@ -404,7 +404,7 @@ class Derpi:
     async def check(self, ctx, *, tag):
         """Returns a tag's aliases, if any."""
 
-        async with aiofiles.open("./data/aliases.json", loop=self.bot.loop) as f:
+        async with aiofiles.open("./data/aliases.json") as f:
             aliases = json.loads(await f.read())
 
         aliased_to = aliases.get(tag)

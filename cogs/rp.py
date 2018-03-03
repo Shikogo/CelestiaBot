@@ -48,7 +48,7 @@ class RP:
     async def sw_xp(self, ctx):
         """ Displays XP from the shipwrecked campaign. """
         if ctx.invoked_subcommand is None:
-            async with aiofiles.open('./data/sw_xp.json', loop=self.bot.loop) as f:
+            async with aiofiles.open('./data/sw_xp.json') as f:
                 xp = json.loads(await f.read())
 
             await ctx.send("The current XP total is **{0}**. The last XP gain was {1} on {2}.".format(xp[0], xp[1], xp[2]))
@@ -57,14 +57,14 @@ class RP:
     @checks.is_mod()
     async def add(self, ctx, gain: int):
         """ Adds XP. Mod only. """
-        async with aiofiles.open('./data/sw_xp.json', loop=self.bot.loop) as f:
+        async with aiofiles.open('./data/sw_xp.json') as f:
             xp = json.loads(await f.read())
 
         xp[0] += gain                               # add new XP to total and save
         xp[1] = gain                                # save most recent gain
         xp[2] = dt.date.today().strftime("%B %d")   # save formatted date as string
 
-        async with aiofiles.open('./data/sw_xp.json', mode='w', loop=self.bot.loop) as f:
+        async with aiofiles.open('./data/sw_xp.json', mode='w') as f:
             await f.write(json.dumps(xp))
 
         await ctx.send("**{1}** XP added. New total: {0}.".format(xp[0], xp[1]))

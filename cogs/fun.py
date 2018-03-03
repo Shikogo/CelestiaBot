@@ -89,13 +89,13 @@ class Fun:
                           obj, re.IGNORECASE):
             await ctx.guild.me.edit(nick="Queen Chrysalis")
             await ctx.send("[](/queenlove)")
-            await asyncio.sleep(60, loop=self.bot.loop)
+            await asyncio.sleep(60)
             await ctx.guild.me.edit(nick=None)
 
         elif re.fullmatch("recursion", obj, re.IGNORECASE):
             for i in range(5):
                 await ctx.send("&praise recursion")
-                await asyncio.sleep(1, loop=self.bot.loop)
+                await asyncio.sleep(1)
             await ctx.send("Oops. Sorry about that. [](/lcesurprised)")
 
         elif re.fullmatch("fl(a|e|i|o|u|ä|ü|ö|0){2,}f", obj, re.IGNORECASE):
@@ -245,7 +245,7 @@ class Fun:
             return
         else:
             await ctx.send("{0.display_name} has accepted! A random player will start the match!\n\n".format(opponent))
-            await asyncio.sleep(2, loop=self.bot.loop)
+            await asyncio.sleep(2)
 
         player1 = Player(challenger)
         player2 = Player(opponent)

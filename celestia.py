@@ -30,6 +30,9 @@ description = config['Bot']['description']
 game = config['Bot']['game']
 startup_extensions = [x.strip() for x in config['Bot']['cogs'].split(",")]
 
+# setting the loop to uvloop
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+
 bot = commands.Bot(command_prefix=prefix, description=description)
 
 
@@ -105,7 +108,7 @@ async def on_message(message):
         elif pat.konami.search(message.content):
             await message.guild.me.edit(nick="LVL 100 SUPERPONY EX+")
             await message.channel.send("[](/octybelleintensifies)")
-            await asyncio.sleep(15, loop=self.bot.loop)
+            await asyncio.sleep(15)
             await message.guild.me.edit(nick=None)
         elif pat.derpi.search(message.content):
             post_id_raw = pat.derpi.search(message.content).group().split("/")[-1]
@@ -123,7 +126,7 @@ async def on_message(message):
 
 async def ai_response(channel, message, wait=1):
     async with channel.typing():
-        await asyncio.sleep(wait, loop=bot.loop)
+        await asyncio.sleep(wait)
         await channel.send(message)
 
 
@@ -156,5 +159,4 @@ async def reload(ctx, extension_name: str):
 
 if __name__ == "__main__":
     token = config['Authentication']['token']
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     bot.run(token, bot=True)

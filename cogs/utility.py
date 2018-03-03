@@ -134,7 +134,7 @@ class Utility:
     async def add(self, ctx, user: discord.Member):
         if user.id not in checks.blacklist:
             checks.blacklist.add(user.id)
-            async with aiofiles.open("blacklist.json", mode="w", loop=self.bot.loop) as f:
+            async with aiofiles.open("./data/blacklist.json", mode="w") as f:
                 await f.write(json.dumps(list(checks.blacklist)))
             await ctx.send("{} added to the blacklist.".format(user.name))
         else:
@@ -144,7 +144,7 @@ class Utility:
     async def remove(self, ctx, user: discord.Member):
         if user.id in checks.blacklist:
             checks.blacklist.remove(user.id)
-            async with aiofiles.open("blacklist.json", mode="w", loop=self.bot.loop) as f:
+            async with aiofiles.open("./data/blacklist.json", mode="w") as f:
                 await f.write(json.dumps(list(checks.blacklist)))
             await ctx.send("Removed {} from the blacklist.".format(user.name))
         else:
