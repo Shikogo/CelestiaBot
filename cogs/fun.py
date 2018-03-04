@@ -1,6 +1,8 @@
 import asyncio
+import json
 import random
 import re
+from datetime import date, timedelta
 
 from PIL import Image, ImageDraw, ImageFont
 import discord
@@ -313,6 +315,67 @@ class Fun:
                 return
             else:
                 active_player, inactive_player = inactive_player, active_player
+
+    try:
+        with open("./data/galacon_people.json") as f:
+            galacon_people = json.load(f)
+    except FileNotFoundError:
+        galacon_people = []
+
+
+    @commands.group()
+    async def galacon(self, ctx):
+        """ Find out when galacon is and who is participating. """
+        if ctx.invoked_subcommand is None:
+            galacon_date = date(2018, 7, 28)
+            today = date.today()
+            delta = (galacon_date - today).days
+            if self.galacon_people:
+                guests = "\n\nComing: {}".format(", ".join(self.galacon_people))
+            else:
+                guests = ""
+            if delta > 0:
+                output = "**Galacon is in {} days!**{}".format(delta, guests)
+            elif 3 > delta > 0:
+                output = "**Galacon is right now!**{}".format(guests)
+            else:
+                output = "Galacon is over. :("
+            await ctx.send(output)
+
+
+    @galacon.command()
+    async def add(self, ctx, *, item=None):
+        """ Add yourself to the list of attendees! """
+        if not item:
+            item = ctx.author.name
+        if item in self.galacon_people:
+            await ctx.send("You're already on the list!")
+        else:
+            self.galacon_people.append(item)
+            self.galacon_people.sort()
+            with open("./data/galacon_people.json", "w") as f:
+                json.dump(self.galacon_people, f)
+            await ctx.send("Added {} to the list.".format(item))
+
+
+    @galacon.command()
+    async def remove(self, ctx, *, item=None):
+        """ Remove yourself from the list of attendees! """
+        if not item:
+            item = ctx.author.name
+        if item not in self.galacon_people:
+            await ctx.send("You're not on the list!")
+        else:
+            self.galacon_people.remove(item)
+            with open("./data/galacon_people.json", "w") as f:
+                json.dump(self.galacon_people, f)
+            await ctx.send("Removed {} from the list.".format(item))
+
+
+    @galacon.command(hidden=True)
+    async def guests(self, ctx):
+        """ Prints the guests at Galacon this year."""
+        await ctx.send("This isn't implemented yet!")
 
 
 def setup(bot):
