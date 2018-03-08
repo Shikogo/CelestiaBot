@@ -69,7 +69,7 @@ class Utility:
     @commands.is_owner()
     async def set_game(self, ctx, *, game=None):
         """Sets the game the bot is 'playing'."""
-        await self.bot.change_presence(game=discord.Game(name=game))
+        await self.bot.change_presence(activity=discord.Game(name=game))
         await ctx.send("Game set to {}.".format(game))
 
     @commands.command()

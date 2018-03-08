@@ -45,7 +45,7 @@ async def on_ready():
     print("------")
 
     bot.add_check(checks.is_not_blacklisted)
-    await bot.change_presence(game=discord.Game(name=game))
+    await bot.change_presence(activity=discord.Game(name=game))
 
     global pat
     pat = patterns.Patterns(bot.user.id)
