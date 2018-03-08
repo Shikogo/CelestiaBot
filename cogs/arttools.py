@@ -33,9 +33,12 @@ class ArtTools:
             else:
                 name = result.name
             if result.first_appearance:
-                first_app = "Season {}, Episode {}, {} minutes {} seconds".format(*result.first_appearance.split("|"))
+                try:
+                    first_app = "Season {}, Episode {}, {} minutes {} seconds".format(*result.first_appearance.split("|"))
+                except IndexError:
+                    first_app = result.first_appearance
             else:
-                first_app = "Unknown"
+                first_app = "None"
 
             if result.link:
                 url = "Wiki: <{}>\n".format(result.link)
