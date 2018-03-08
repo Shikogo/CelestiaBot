@@ -352,10 +352,10 @@ class Fun:
             await ctx.send("You're already on the list!")
         else:
             self.galacon_people.append(item)
-            self.galacon_people.sort()
+            self.galacon_people.sort(key=lambda x: x.lower())
             with open("./data/galacon_people.json", "w") as f:
                 json.dump(self.galacon_people, f)
-            await ctx.send("Added {} to the list.".format(item))
+            await ctx.send("Added `{}` to the list.".format(item))
 
 
     @galacon.command()
@@ -369,7 +369,7 @@ class Fun:
             self.galacon_people.remove(item)
             with open("./data/galacon_people.json", "w") as f:
                 json.dump(self.galacon_people, f)
-            await ctx.send("Removed {} from the list.".format(item))
+            await ctx.send("Removed `{}` from the list.".format(item))
 
 
     @galacon.command(hidden=True)
