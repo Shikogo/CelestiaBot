@@ -8,7 +8,7 @@ DerPyBooru==0.7.3
 idna==2.6
 lxml==4.1.1
 multidict==4.0.0
-Pillow==5.0.0
+Pillow==6.2.0
 pony==0.7.3
 requests==2.18.4
 urllib3==1.22
